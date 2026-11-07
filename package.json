@@ -1,0 +1,35 @@
+{
+  "name": "mediinsight",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@napi-rs/canvas": "^1.0.9",
+    "axios": "^1.7.2",
+    "lucide-react": "^0.400.0",
+    "next": "14.2.5",
+    "openai": "^4.52.7",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.4.168",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
+    "recharts": "^2.12.7",
+    "resend": "^6.28.1",
+    "resend": "^6.28.1",
+    "sharp": "^0.33.4",
+    "tesseract.js": "^5.1.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18"
+  }
+}
