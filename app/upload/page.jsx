@@ -9,9 +9,9 @@ const ACCEPTED_MIME = {
   'application/pdf': ['.pdf'],
   'image/jpeg':      ['.jpg', '.jpeg'],
   'image/png':       ['.png'],
-  'image/tiff':      ['.tiff', '.tif'],
-  'image/bmp':       ['.bmp'],
   'image/webp':      ['.webp'],
+  'image/heic':      ['.heic'],
+  'image/heif':      ['.heif'],
 }
 const MAX_SIZE_MB = 20
 const MAX_BYTES   = MAX_SIZE_MB * 1024 * 1024
@@ -42,7 +42,7 @@ export default function UploadPage() {
     if (rejected.length > 0) {
       const reason = rejected[0].errors[0]
       if (reason.code === 'file-too-large')       setError(`File too large. Maximum is ${MAX_SIZE_MB} MB.`)
-      else if (reason.code === 'file-invalid-type') setError('Unsupported file type. Please upload a PDF or image (JPG, PNG, TIFF, BMP, WEBP).')
+      else if (reason.code === 'file-invalid-type') setError('Unsupported file type. Please upload a PDF or image (JPG, PNG, WEBP).')
       else setError(reason.message)
       return
     }
@@ -127,7 +127,7 @@ export default function UploadPage() {
             <div className="dropzone-title">{isDragActive ? 'Drop the file here' : 'Drag & drop your report'}</div>
             <div className="dropzone-sub">
               or <span>browse to upload</span><br />
-              <span style={{ color: 'var(--gray-400)', fontSize: 13 }}>PDF, JPG, PNG, TIFF, BMP, WEBP — up to {MAX_SIZE_MB} MB</span>
+              <span style={{ color: 'var(--gray-400)', fontSize: 13 }}>PDF, JPG, PNG, WEBP — up to {MAX_SIZE_MB} MB</span>
             </div>
           </>
         ) : (
