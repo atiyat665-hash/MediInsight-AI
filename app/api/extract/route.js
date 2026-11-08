@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server'
-import { writeFile, unlink } from 'fs/promises'
-import { existsSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
-import { v4 as uuidv4 } from 'uuid'
 import { extractText } from '../../../lib/textExtractor.js'
+
+export const maxDuration = 60
 
 const MAX_SIZE_MB    = parseInt(process.env.MAX_FILE_SIZE_MB || '20', 10)
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
 const ALLOWED_MIME = new Set([
   'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
-  'image/tiff', 'image/bmp', 'image/webp',
+  'image/webp', 'image/heic', 'image/heif',
 ])
-const ALLOWED_EXT = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.webp'])
+const ALLOWED_EXT = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'])
 
 export async function POST(request) {
-  let tempPath = null
   try {
+    const contentType = request.headers.get('content-type') || ''
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ error: 'Expected multipart/form-data request.' }, { status: 400 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('report')
 
@@ -28,7 +29,7 @@ export async function POST(request) {
     // Validate MIME type
     if (!ALLOWED_MIME.has(file.type)) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Please upload a PDF or image (JPG, PNG, TIFF, BMP, WEBP).` },
+        { error: `Unsupported file type: ${file.type}. Please upload a PDF or image (JPG, PNG, WEBP, HEIC).` },
         { status: 415 }
       )
     }
@@ -46,23 +47,24 @@ export async function POST(request) {
     const originalName = file.name || 'upload'
     const extMatch = originalName.match(/\.[^.]+$/)
     const ext = extMatch ? extMatch[0].toLowerCase() : ''
-    if (!ALLOWED_EXT.has(ext)) {
+    if (ext && !ALLOWED_EXT.has(ext)) {
       return NextResponse.json(
         { error: `Unsupported file extension: ${ext}.` },
         { status: 415 }
       )
     }
 
-    // Write to OS temp dir
-    tempPath = join(tmpdir(), `${uuidv4()}${ext}`)
-    await writeFile(tempPath, Buffer.from(arrayBuffer))
-
-    // Extract text
-    const result = await extractText(tempPath)
+    // Process entirely in memory — no writing to disk
+    const buffer = Buffer.from(arrayBuffer)
+    const result = await extractText({
+      buffer,
+      mimeType: file.type,
+      filename: originalName,
+    })
 
     if (!result.text || result.text.trim().length < 10) {
       return NextResponse.json(
-        { error: 'Very little text could be extracted. The report may be low-quality or graphics-only. Try a higher-resolution image.' },
+        { error: 'Very little text could be extracted. The report may be low-quality or blank.' },
         { status: 422 }
       )
     }
@@ -74,17 +76,12 @@ export async function POST(request) {
         mimeType:   file.type,
         method:     result.method,
         numPages:   result.numPages   || null,
-        confidence: result.confidence != null ? Math.round(result.confidence) : null,
+        confidence: result.confidence != null ? Math.round(result.confidence) : 95,
         sizeKB:     Math.round(arrayBuffer.byteLength / 1024),
       },
     })
   } catch (err) {
     console.error('[/api/extract]', err.message)
     return NextResponse.json({ error: err.message || 'Extraction failed.' }, { status: 500 })
-  } finally {
-    // Always clean up temp file
-    if (tempPath && existsSync(tempPath)) {
-      unlink(tempPath).catch(e => console.warn('[Cleanup]', e.message))
-    }
   }
 }
